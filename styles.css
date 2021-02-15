@@ -33,6 +33,10 @@ body {
     border-width: 0;
 }
 
+.clickable {
+    cursor: pointer;
+}
+
 .container {
     width: min(90vw, 800px);
     margin: auto;
