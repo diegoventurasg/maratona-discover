@@ -1,11 +1,19 @@
 const Modal = {
-    open(){
+    open(index){
+        if(index!==-1){
+            const item = Transaction.get(index)
+            document.querySelector('input#index').value = index
+            document.querySelector('input#description').value = item.description
+            document.querySelector('input#amount').value = Utils.formatCurrencyEdit(item.amount)
+            document.querySelector('input#date').value = Utils.formatDateEdit(item.date)
+        }
+
         // Abrir modal
         // Adicionar a class active ao modal
         document
             .querySelector('.modal-overlay')
             .classList
-            .add('active')
+            .add('active')            
     },
     
     close(){
@@ -15,6 +23,8 @@ const Modal = {
             .querySelector('.modal-overlay')
             .classList
             .remove('active')
+        
+        Form.clearFields()
     }
 }
 
@@ -31,6 +41,15 @@ const Storage = {
 const Transaction = {
     all: Storage.get(),
 
+    get(index) {
+        try {
+            return Transaction.all[index]
+        } catch (error) {
+            
+        }
+        return null
+    },
+
     add(transaction) {
         Transaction.all.push(transaction)
         App.reload()
@@ -38,6 +57,11 @@ const Transaction = {
 
     remove(index) {
         Transaction.all.splice(index, 1)
+        App.reload()
+    },
+
+    update(index, transaction) {
+        Transaction.all.splice(index, 1, transaction)
         App.reload()
     },
 
@@ -77,11 +101,11 @@ const DOM = {
         const amount = Utils.formatCurrency(transaction.amount)
 
         const html = `
-        <td class="description">${transaction.description}</td>
-        <td class="${CSSclass}">${amount}</td>
-        <td class="date">${transaction.date}</td>
+        <td class="description clickable" onclick="Modal.open(${index})">${transaction.description}</td>
+        <td class="${CSSclass} clickable" onclick="Modal.open(${index})">${amount}</td>
+        <td class="date clickable" onclick="Modal.open(${index})">${transaction.date}</td>
         <td>
-            <img onclick="Transaction.remove(${index})" src="./assets/minus.svg" alt="Remover transação">
+            <img class="clickable" onclick="Transaction.remove(${index})" src="./assets/minus.svg" alt="Remover transação">
         </td>
         `
 
@@ -118,6 +142,12 @@ const Utils = {
         return `${splittedDate[2]}/${splittedDate[1]}/${splittedDate[0]}`
     },
 
+    formatDateEdit(date) {
+        const splittedDate = date.split("/")
+
+        return `${splittedDate[2]}-${splittedDate[1]}-${splittedDate[0]}`
+    },
+
     formatCurrency(value) {
         const signal = Number(value) < 0 ? "-" : ""
 
@@ -131,13 +161,29 @@ const Utils = {
         })
 
         return signal + value
+    },
+
+    formatCurrencyEdit(value) {
+        const signal = Number(value) < 0 ? "-" : ""
+
+        value = String(value).replace(/\D/g, "")
+
+        value = (Number(value) / 100).toFixed(2)
+
+        return signal + value
     }
 }
 
 const Form = {
+    index: document.querySelector('input#index'),
     description: document.querySelector('input#description'),
     amount: document.querySelector('input#amount'),
     date: document.querySelector('input#date'),
+
+    getIndex() {
+        const i = Number(Form.index.value)
+        return i
+    },
 
     getValues() {
         return {
@@ -170,6 +216,7 @@ const Form = {
     },
 
     clearFields() {
+        Form.index.value = "-1"
         Form.description.value = ""
         Form.amount.value = ""
         Form.date.value = ""
@@ -181,7 +228,8 @@ const Form = {
         try {
             Form.validateFields()
             const transaction = Form.formatValues()
-            Transaction.add(transaction) 
+            const index = Form.getIndex()
+            index !== -1 ? Transaction.update(index, transaction) : Transaction.add(transaction) 
             Form.clearFields()
             Modal.close()
         } catch (error) {
